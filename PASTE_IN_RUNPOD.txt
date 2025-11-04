@@ -34,16 +34,13 @@ Copy and paste ALL of these commands into the web terminal:
 apt-get update && apt-get install -y docker.io git jq
 service docker start
 
-# Clone Gaussian-LIC repository
+# Clone YOUR repository with custom Dockerfile
 cd /workspace
-git clone https://github.com/APRIL-ZJU/Gaussian-LIC.git
-
-# If you need YOUR custom Dockerfile, upload it to GitHub first
-# Then clone YOUR repo instead:
-# git clone https://github.com/YOUR_USERNAME/GaussianSplat-LIC2.git
+git clone --recurse-submodules https://github.com/physknoll/SPLAT-RUNPOD.git
+cd SPLAT-RUNPOD
 
 # Build the Docker image (this will take 30-40 minutes)
-cd /workspace/Gaussian-LIC
+# This uses YOUR custom Dockerfile with all your configurations
 docker build --platform=linux/amd64 -t rockrobotic961/gaussian-lic:latest .
 
 # Login to Docker Hub
