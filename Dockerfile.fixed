@@ -1,0 +1,170 @@
+# Gaussian-LIC Docker Image for RunPod
+# IMPORTANT: This MUST be built on x86_64 Linux with NVIDIA GPU
+# Build on RunPod, not on Mac!
+
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Set up timezone
+RUN ln -fs /usr/share/zoneinfo/UTC /etc/localtime
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    git \
+    cmake \
+    build-essential \
+    pkg-config \
+    software-properties-common \
+    lsb-release \
+    gnupg2 \
+    ca-certificates \
+    python3-pip \
+    python3-dev \
+    python3-numpy \
+    libffi-dev \
+    libyaml-cpp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install ROS Noetic
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
+    apt-get update && \
+    apt-get install -y \
+    ros-noetic-desktop-full \
+    ros-noetic-cv-bridge \
+    ros-noetic-image-transport \
+    ros-noetic-pcl-conversions \
+    ros-noetic-pcl-ros \
+    ros-noetic-eigen-conversions \
+    ros-noetic-tf \
+    ros-noetic-tf-conversions \
+    python3-rosdep \
+    python3-rosinstall \
+    python3-rosinstall-generator \
+    python3-wstool \
+    python3-catkin-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Initialize rosdep
+RUN rosdep init && rosdep update
+
+# Source ROS setup in bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+
+# Install additional OpenCV dependencies
+RUN apt-get update && apt-get install -y \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libxvidcore-dev \
+    libx264-dev \
+    libgtk-3-dev \
+    libatlas-base-dev \
+    gfortran \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create software directory
+RUN mkdir -p /root/Software
+
+# Download OpenCV 4.7.0 sources (cached layer)
+WORKDIR /root/Software/opencv
+RUN wget -q https://github.com/opencv/opencv/archive/refs/tags/4.7.0.tar.gz && \
+    tar -zxf 4.7.0.tar.gz && rm 4.7.0.tar.gz
+
+RUN wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/4.7.0.tar.gz && \
+    tar -zxf 4.7.0.tar.gz && rm 4.7.0.tar.gz
+
+# Configure and build OpenCV with CUDA support
+WORKDIR /root/Software/opencv/opencv-4.7.0/build
+RUN cmake -DCMAKE_BUILD_TYPE=RELEASE \
+    -DWITH_CUDA=ON \
+    -DWITH_CUDNN=ON \
+    -DOPENCV_DNN_CUDA=ON \
+    -DWITH_NVCUVID=ON \
+    -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-11.7 \
+    -DOPENCV_EXTRA_MODULES_PATH="/root/Software/opencv/opencv_contrib-4.7.0/modules" \
+    -DBUILD_TIFF=ON \
+    -DBUILD_ZLIB=ON \
+    -DBUILD_JASPER=ON \
+    -DBUILD_CCALIB=ON \
+    -DBUILD_JPEG=ON \
+    -DWITH_FFMPEG=ON \
+    -DCUDA_ARCH_BIN="7.5,8.0,8.6" \
+    -DENABLE_FAST_MATH=ON \
+    -DCUDA_FAST_MATH=ON \
+    ..
+
+# Build OpenCV (separate step for better caching)
+RUN make -j$(nproc)
+
+# Download LibTorch 2.0.1 with CUDA 11.7 (cached layer)
+WORKDIR /root/Software
+RUN wget -q https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.1%2Bcu117.zip && \
+    unzip -q libtorch-cxx11-abi-shared-with-deps-2.0.1+cu117.zip && \
+    rm libtorch-cxx11-abi-shared-with-deps-2.0.1+cu117.zip
+
+# Create catkin workspaces
+RUN mkdir -p /root/catkin_coco/src && \
+    mkdir -p /root/catkin_gaussian/src
+
+# Install Livox ROS Driver for Coco-LIC
+WORKDIR /root/catkin_coco/src
+RUN git clone https://github.com/Livox-SDK/livox_ros_driver.git
+
+# Build Livox driver
+WORKDIR /root/catkin_coco
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Clone Coco-LIC
+WORKDIR /root/catkin_coco/src
+RUN git clone https://github.com/APRIL-ZJU/Coco-LIC.git
+
+# Build Coco-LIC
+WORKDIR /root/catkin_coco
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Copy Gaussian-LIC source code
+COPY Gaussian-LIC /root/catkin_gaussian/src/Gaussian-LIC
+
+# Build Gaussian-LIC
+WORKDIR /root/catkin_gaussian
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Set up environment
+RUN echo "source /root/catkin_gaussian/devel/setup.bash" >> /root/.bashrc && \
+    echo "source /root/catkin_coco/devel/setup.bash" >> /root/.bashrc
+
+# Create results directory
+RUN mkdir -p /root/catkin_gaussian/src/Gaussian-LIC/result
+
+# Create workspace directory for datasets
+RUN mkdir -p /workspace/datasets
+
+# Set working directory
+WORKDIR /workspace
+
+# Expose ports for ROS and visualization
+EXPOSE 11311 8888
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+source /opt/ros/noetic/setup.bash\n\
+source /root/catkin_coco/devel/setup.bash\n\
+source /root/catkin_gaussian/devel/setup.bash\n\
+exec "$@"' > /entrypoint.sh && \
+chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/bin/bash"]
+

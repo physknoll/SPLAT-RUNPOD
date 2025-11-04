@@ -1,0 +1,12 @@
+# Instructions: Copy-Paste Dockerfile to RunPod
+
+1. In RunPod Web Terminal, run:
+   cd /workspace
+   nano Dockerfile
+
+2. Copy your entire Dockerfile from below and paste into nano
+
+3. Press: Ctrl+X, then Y, then Enter to save
+
+4. Verify: cat Dockerfile | head -5
+

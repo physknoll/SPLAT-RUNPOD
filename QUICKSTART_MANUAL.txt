@@ -1,0 +1,65 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   FASTEST PATH TO BUILD (10 MINUTES)                      ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+The CLI/API has version issues. Use the WEB INTERFACE instead (guaranteed!):
+
+🎯 STEP 1: Create Build Pod (2 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: https://www.runpod.io/console/pods
+2. Click "+ Deploy" → "GPU Pod"
+3. Select: RTX 4090 (or RTX 3090)
+4. Template: PyTorch 2.1.0 with CUDA
+5. Container Disk: 60 GB
+6. Volume: 0 GB
+7. Click "Deploy On-Demand"
+
+🎯 STEP 2: Open Web Terminal (1 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Wait for Pod to show "Running"
+2. Click "Connect" → "Start Web Terminal"
+
+🎯 STEP 3: Upload Your Dockerfile (2 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In terminal:
+```
+cd /workspace
+git clone https://github.com/APRIL-ZJU/Gaussian-LIC.git
+```
+
+Upload your Dockerfile via the file browser (folder icon top-left)
+
+🎯 STEP 4: Build (35-40 min - automated)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```
+docker build --platform linux/amd64 -t rockrobotic961/gaussian-lic:latest .
+```
+
+🎯 STEP 5: Push to Docker Hub (5 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+```
+docker login -u rockrobotic961
+# Password: dckr_pat_WSWJv6850k2HmRiyUqTyagCAXTo
+
+docker push rockrobotic961/gaussian-lic:latest
+```
+
+🎯 STEP 6: Clean Up
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go back to https://www.runpod.io/console/pods
+2. Terminate the build Pod
+
+✅ DONE! Image is on Docker Hub: rockrobotic961/gaussian-lic:latest
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 TOTAL COST: ~$0.26
+⏱️  TOTAL TIME: 45 minutes (mostly automated)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 See MANUAL_BUILD_STEPS.md for detailed instructions

@@ -1,0 +1,37 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_tarball")
+
+# Build using our Dockerfile via a shell script wrapper
+genrule(
+    name = "build_image_tar",
+    srcs = ["Dockerfile", "Gaussian-LIC"],
+    outs = ["gaussian-lic.tar"],
+    cmd = """
+        # Start dockerd if not running
+        dockerd > /tmp/docker.log 2>&1 &
+        sleep 5
+        
+        # Build the image
+        cd $$(dirname $(location Dockerfile))
+        docker build --platform linux/amd64 -t rockrobotic961/gaussian-lic:latest -f $(location Dockerfile) .
+        
+        # Save to tar
+        docker save rockrobotic961/gaussian-lic:latest -o $@
+        
+        # Login and push
+        echo "dckr_pat_WSWJv6850k2HmRiyUqTyagCAXTo" | docker login -u rockrobotic961 --password-stdin
+        docker push rockrobotic961/gaussian-lic:latest
+    """,
+    tags = ["manual"],
+)
+
+# Push target
+genrule(
+    name = "push_gaussian_lic",
+    srcs = [":build_image_tar"],
+    outs = ["push.done"],
+    cmd = """
+        echo "Image built and pushed!" > $@
+    """,
+    tags = ["manual"],
+)
+

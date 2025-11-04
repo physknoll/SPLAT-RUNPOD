@@ -1,0 +1,38 @@
+# Build artifacts
+*.log
+build/
+dist/
+*.tar.gz
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials - IMPORTANT!
+*_API_KEY*
+*_TOKEN*
+*_PASSWORD*
+
+# Temporary files
+/tmp/
+*.tmp

@@ -1,0 +1,147 @@
+==============================================
+  RUNPOD BUILD INSTRUCTIONS (SIMPLE!)
+==============================================
+
+✅ STEP 1: CREATE CPU POD (Web Console)
+---------------------------------------
+1. Go to: https://www.runpod.io/console/pods
+2. Click "+ Deploy"
+3. Select:
+   - Template: "RunPod Ubuntu 22.04"
+   - Pod Type: CPU (not GPU!)
+   - CPU: 8+ vCPUs
+   - Disk: 60 GB
+   - Volume: 0 GB (not needed)
+4. Click "Deploy"
+5. Wait for pod to start (~30 seconds)
+
+💰 Cost: ~$0.08/hour
+
+
+✅ STEP 2: OPEN WEB TERMINAL
+-----------------------------
+1. Click on your new pod
+2. Click "Connect" tab
+3. Click "Start Web Terminal"
+4. Terminal will open in your browser
+
+
+✅ STEP 3: PASTE THESE COMMANDS
+--------------------------------
+Copy and paste ALL of these commands into the web terminal:
+
+# Install Docker and Git
+apt-get update && apt-get install -y docker.io git jq
+service docker start
+
+# Clone Gaussian-LIC repository
+cd /workspace
+git clone https://github.com/APRIL-ZJU/Gaussian-LIC.git
+
+# If you need YOUR custom Dockerfile, upload it to GitHub first
+# Then clone YOUR repo instead:
+# git clone https://github.com/YOUR_USERNAME/GaussianSplat-LIC2.git
+
+# Build the Docker image (this will take 30-40 minutes)
+cd /workspace/Gaussian-LIC
+docker build --platform=linux/amd64 -t rockrobotic961/gaussian-lic:latest .
+
+# Login to Docker Hub
+echo "dckr_pat_I8wQSm81lmi9UvCs_8x1n-L_fgQ" | docker login -u rockrobotic961 --password-stdin
+
+# Push to Docker Hub
+docker push rockrobotic961/gaussian-lic:latest
+
+echo "================================"
+echo "✅ BUILD COMPLETE!"
+echo "================================"
+echo "Image: rockrobotic961/gaussian-lic:latest"
+echo ""
+echo "Next steps:"
+echo "1. Go back to RunPod console"
+echo "2. STOP this CPU pod (to stop charges)"
+echo "3. Deploy a GPU pod with your image"
+echo "4. Start processing!"
+
+
+✅ STEP 4: STOP THE POD
+------------------------
+After the build completes and pushes to Docker Hub:
+1. Go back to https://www.runpod.io/console/pods
+2. Find your CPU build pod
+3. Click "..." menu → "Terminate"
+4. Confirm termination
+
+This stops all charges!
+
+
+✅ STEP 5: USE YOUR IMAGE
+--------------------------
+To use your built image on a GPU pod:
+1. Click "+ Deploy" for a new pod
+2. Select GPU (RTX 5090 recommended)
+3. Custom Template → Use Custom Image
+4. Image: rockrobotic961/gaussian-lic:latest
+5. Deploy!
+
+
+==============================================
+  TROUBLESHOOTING
+==============================================
+
+Problem: "docker: command not found"
+Solution: Run: apt-get update && apt-get install -y docker.io
+          Then: service docker start
+
+Problem: "Cannot connect to Docker daemon"
+Solution: Run: service docker start
+
+Problem: Build fails
+Solution: Check if you have the right Dockerfile
+          The Gaussian-LIC repo has its own Dockerfile
+          If you need YOUR custom one, push it to GitHub first
+
+Problem: Out of disk space
+Solution: Create pod with more disk (80+ GB)
+
+
+==============================================
+  WHY THIS WORKS
+==============================================
+
+✅ CPU pods have Docker daemon (GPU pods don't!)
+✅ All downloads happen on RunPod (not your Mac)
+✅ Much cheaper than GPU pods for building
+✅ No complex file transfer needed
+✅ Git clone handles code transfer
+✅ Normal `docker build` - no workarounds!
+
+
+==============================================
+  COST ESTIMATE
+==============================================
+
+CPU Pod (8 vCPU): $0.08/hour
+Build time: ~40 minutes
+Total cost: ~$0.05
+
+Compare to:
+- GPU pod build: $0.23-0.60
+- GitHub Actions: $0.00 (free!)
+
+
+==============================================
+  NOTES
+==============================================
+
+⚠️  SECURITY: The credentials in this file should be
+    rotated after use! Both your RunPod API key and
+    Docker Hub token are visible here.
+
+📝  If you want YOUR custom Dockerfile (not the one
+    from APRIL-ZJU/Gaussian-LIC), push it to GitHub
+    first, then clone YOUR repo instead.
+
+🎯  This is the official, supported way to build
+    Docker images on RunPod!
+

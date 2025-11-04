@@ -1,0 +1,16 @@
+module(name = "gaussian_lic_build")
+
+bazel_dep(name = "rules_oci", version = "2.0.0")
+
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+
+# Pull base image
+oci.pull(
+    name = "cuda_base",
+    image = "nvidia/cuda",
+    platforms = ["linux/amd64"],
+    tag = "11.7.1-cudnn8-devel-ubuntu20.04",
+)
+
+use_repo(oci, "cuda_base")
+
