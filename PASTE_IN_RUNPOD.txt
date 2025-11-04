@@ -32,7 +32,17 @@ Copy and paste ALL of these commands into the web terminal:
 
 # Install Docker and Git
 apt-get update && apt-get install -y docker.io git jq
+
+# Start Docker daemon (IMPORTANT!)
 service docker start
+
+# Verify Docker is running
+docker ps
+
+# If you see "Cannot connect to Docker daemon", run:
+# dockerd > /tmp/docker.log 2>&1 &
+# sleep 5
+# docker ps
 
 # Clone YOUR repository with custom Dockerfile
 cd /workspace
