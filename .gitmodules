@@ -1,0 +1,3 @@
+[submodule "Gaussian-LIC"]
+	path = Gaussian-LIC
+	url = https://github.com/APRIL-ZJU/Gaussian-LIC.git
