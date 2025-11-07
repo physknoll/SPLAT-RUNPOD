@@ -1,8 +1,8 @@
 # Gaussian-LIC Docker Image for RunPod
-# Based on Ubuntu 20.04 with CUDA 11.7
+# Based on Ubuntu 22.04 with CUDA 12.4 (better PCL support)
 # MUST be built on x86_64 Linux with NVIDIA GPU or on RunPod
 
-FROM --platform=linux/amd64 nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+FROM --platform=linux/amd64 nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -157,13 +157,9 @@ RUN echo "Cloning Coco-LIC..." && \
     git clone https://github.com/APRIL-ZJU/Coco-LIC.git && \
     echo "Coco-LIC cloned!"
 
-# Patch Coco-LIC to work with PCL 1.10 (Ubuntu 20.04 has 1.10, not 1.13)
-# 1. Update CMakeLists.txt version requirement
-RUN sed -i 's/find_package(PCL 1.13.0 REQUIRED)/find_package(PCL 1.10.0 REQUIRED)/g' /root/catkin_coco/src/Coco-LIC/CMakeLists.txt
-
-# 2. Remove pcl/type_traits.h include (doesn't exist in PCL 1.10, added in 1.13)
-RUN find /root/catkin_coco/src/Coco-LIC -name "*.h" -o -name "*.hpp" | \
-    xargs sed -i '/#include <pcl\/type_traits.h>/d'
+# Patch Coco-LIC to work with PCL 1.12 (Ubuntu 22.04 has 1.12, closer to 1.13)
+# Update CMakeLists.txt version requirement
+RUN sed -i 's/find_package(PCL 1.13.0 REQUIRED)/find_package(PCL 1.12.0 REQUIRED)/g' /root/catkin_coco/src/Coco-LIC/CMakeLists.txt
 
 # Build Coco-LIC (separate layer)
 WORKDIR /root/catkin_coco
