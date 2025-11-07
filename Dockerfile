@@ -158,7 +158,12 @@ RUN echo "Cloning Coco-LIC..." && \
     echo "Coco-LIC cloned!"
 
 # Patch Coco-LIC to work with PCL 1.10 (Ubuntu 20.04 has 1.10, not 1.13)
+# 1. Update CMakeLists.txt version requirement
 RUN sed -i 's/find_package(PCL 1.13.0 REQUIRED)/find_package(PCL 1.10.0 REQUIRED)/g' /root/catkin_coco/src/Coco-LIC/CMakeLists.txt
+
+# 2. Remove pcl/type_traits.h include (doesn't exist in PCL 1.10, added in 1.13)
+RUN find /root/catkin_coco/src/Coco-LIC -name "*.h" -o -name "*.hpp" | \
+    xargs sed -i '/#include <pcl\/type_traits.h>/d'
 
 # Build Coco-LIC (separate layer)
 WORKDIR /root/catkin_coco
