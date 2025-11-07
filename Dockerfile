@@ -49,6 +49,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
     python3-rosinstall-generator \
     python3-wstool \
     python3-catkin-tools \
+    libpcl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Initialize rosdep
