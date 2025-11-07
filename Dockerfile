@@ -1,8 +1,9 @@
 # Gaussian-LIC Docker Image for RunPod
-# Based on Ubuntu 22.04 with CUDA 12.4 (better PCL support)
+# Based on EXACT requirements from official repo:
+# Ubuntu 20.04 + CUDA 11.7 + cuDNN 8
 # MUST be built on x86_64 Linux with NVIDIA GPU or on RunPod
 
-FROM --platform=linux/amd64 nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM --platform=linux/amd64 nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -57,6 +58,20 @@ RUN rosdep init && rosdep update
 
 # Source ROS setup in bashrc
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+
+# Build PCL 1.13 from source (required by Coco-LIC, Ubuntu 20.04 only has 1.10)
+WORKDIR /root/Software
+RUN echo "Building PCL 1.13 from source..." && \
+    apt-get update && apt-get install -y libeigen3-dev libflann-dev libvtk7-dev && \
+    wget https://github.com/PointCloudLibrary/pcl/archive/refs/tags/pcl-1.13.0.tar.gz && \
+    tar -xzf pcl-1.13.0.tar.gz && rm pcl-1.13.0.tar.gz && \
+    cd pcl-pcl-1.13.0 && mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig && \
+    cd /root && rm -rf /root/Software/pcl-pcl-1.13.0 && \
+    echo "PCL 1.13 installed!"
 
 # Install additional OpenCV dependencies and Ceres Solver
 RUN apt-get update && apt-get install -y \
@@ -123,16 +138,16 @@ RUN cmake -DCMAKE_BUILD_TYPE=RELEASE \
 # Build OpenCV (this will work on Mac without CUDA)
 RUN make -j$(nproc)
 
-# Download LibTorch 2.0.1 CPU version (cached - ~2GB download)
+# Download LibTorch 2.0.1 CUDA 11.7 version (cached - ~2GB download)
 WORKDIR /root/Software
-RUN echo "Downloading LibTorch (~2GB, may take a few minutes)..." && \
-    wget --progress=bar:force:noscroll https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.0.1%2Bcpu.zip && \
+RUN echo "Downloading LibTorch CUDA 11.7 (~2GB, may take a few minutes)..." && \
+    wget --progress=bar:force:noscroll https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.1%2Bcu117.zip && \
     echo "LibTorch downloaded successfully!"
 
 # Extract LibTorch (separate layer so download is cached)
 RUN echo "Extracting LibTorch..." && \
-    unzip -q libtorch-cxx11-abi-shared-with-deps-2.0.1+cpu.zip && \
-    rm libtorch-cxx11-abi-shared-with-deps-2.0.1+cpu.zip && \
+    unzip -q libtorch-cxx11-abi-shared-with-deps-2.0.1+cu117.zip && \
+    rm libtorch-cxx11-abi-shared-with-deps-2.0.1+cu117.zip && \
     echo "LibTorch extracted!"
 
 # Create catkin workspaces
@@ -151,15 +166,11 @@ RUN echo "Building Livox driver..." && \
     /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make" && \
     echo "Livox built!"
 
-# Clone Coco-LIC (cached)
+# Clone Coco-LIC (no patches needed - we have PCL 1.13!)
 WORKDIR /root/catkin_coco/src
 RUN echo "Cloning Coco-LIC..." && \
     git clone https://github.com/APRIL-ZJU/Coco-LIC.git && \
     echo "Coco-LIC cloned!"
-
-# Patch Coco-LIC to work with PCL 1.12 (Ubuntu 22.04 has 1.12, closer to 1.13)
-# Update CMakeLists.txt version requirement
-RUN sed -i 's/find_package(PCL 1.13.0 REQUIRED)/find_package(PCL 1.12.0 REQUIRED)/g' /root/catkin_coco/src/Coco-LIC/CMakeLists.txt
 
 # Build Coco-LIC (separate layer)
 WORKDIR /root/catkin_coco
